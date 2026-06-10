@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажер для самопроверки</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg-front: #ffffff;
+            --card-bg-back: #eef2f7;
+            --text-color: #2c3e50;
+            --accent-color: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        /* Контейнер для 3D-эффекта поворота */
+        .card-container {
+            width: 100%;
+            max-width: 550px;
+            height: 320px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        /* Сама карточка */
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            border-radius: 16px;
+        }
+
+        /* Класс, который будет переворачивать карточку при клике */
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Общие стили для обеих сторон */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        /* Лицевая сторона (Вопрос) */
+        .card-front {
+            background-color: var(--card-bg-front);
+            font-size: 22px;
+            font-weight: 600;
+            border: 2px solid #e2e8f0;
+        }
+
+        .card-front::after {
+            content: "➔ Нажмите, чтобы узнать ответ";
+            position: absolute;
+            bottom: 15px;
+            font-size: 12px;
+            color: #95a5a6;
+            font-weight: normal;
+        }
+
+        /* Обратная сторона (Ответ) */
+        .card-back {
+            background-color: var(--card-bg-back);
+            transform: rotateY(180deg);
+            font-size: 18px;
+            line-height: 1.6;
+            border: 2px solid var(--accent-color);
+        }
+
+        /* Кнопки управления */
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            user-select: none;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Тренажер знаний</h1>
+    <div class="progress" id="progress">Карточка 1 из 3</div>
+
+    <div class="card-container" onclick="flipCard()">
+        <div class="card" id="card">
+            <div class="card-face card-front" id="question-text">
+                Загрузка вопроса...
+            </div>
+            <div class="card-face card-back" id="answer-text">
+                Загрузка ответа...
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="prev-btn" onclick="prevCard()" disabled>Назад</button>
+        <button id="next-btn" onclick="nextCard()">Вперед</button>
+    </div>
+
+    <script>
+        // БАЗА ДАННЫХ ВОПРОСОВ И ОТВЕТОВ
+        // Ты можешь легко добавлять, удалять или изменять вопросы прямо здесь!
+        const flashcards = [
+            {
+                question: "Чем функциональные требования отличаются от нефункциональных?",
+                answer: "Функциональные требования описывают ЧТО система делает (функции, фичи, кнопки). Нефункциональные требования описывают КАК она это делает (скорость, безопасность, надежность, работа в морозы)."
+            },
+            {
+                question: "Что такое транзитные (переходные) требования?",
+                answer: "Это временные требования, нужные только для перевода системы из старого состояния в новое. Примеры: миграция базы данных клиентов, обучение персонала перед запуском новой АЗС."
+            },
+            {
+                question: "Назови 3-4 основных метода сбора требований.",
+                answer: "1. Интервью (беседа один на один).<br>2. Наблюдение (shadowing за работой сотрудника).<br>3. Анкетирование/опросы (для массового сбора данных).<br>4. Прототипирование (создание макетов экранов)."
+            }
+        ];
+
+        let currentIndex = 0;
+        const cardElement = document.getElementById('card');
+        const questionElement = document.getElementById('question-text');
+        const answerElement = document.getElementById('answer-text');
+        const progressElement = document.getElementById('progress');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+
+        // Функция обновления данных на карточке
+        function updateCard() {
+            // Сбрасываем поворот карточки на лицевую сторону перед сменой текста
+            cardElement.classList.remove('flipped');
+            
+            // Небольшая задержка, чтобы текст менялся, когда карточка отвернута от пользователя
+            setTimeout(() => {
+                questionElement.innerHTML = flashcards[currentIndex].question;
+                answerElement.innerHTML = flashcards[currentIndex].answer;
+                progressElement.textContent = `Карточка ${currentIndex + 1} из ${flashcards.length}`;
+                
+                // Управление активностью кнопок
+                prevBtn.disabled = currentIndex === 0;
+                nextBtn.disabled = currentIndex === flashcards.length - 1;
+            }, 150);
+        }
+
+        // Переворот карточки
+        function flipCard() {
+            cardElement.classList.toggle('flipped');
+        }
+
+        // Кнопка Вперед
+        function nextCard() {
+            if (currentIndex < flashcards.length - 1) {
+                currentIndex++;
+                updateCard();
+            }
+        }
+
+        // Кнопка Назад
+        function prevCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCard();
+            }
+        }
+
+        // Инициализация при первой загрузке
+        updateCard();
+    </script>
+</body>
+</html>
