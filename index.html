@@ -78,7 +78,6 @@
             transition: all 0.2s;
         }
 
-        /* ПОИСК */
         .search-container {
             width: 100%;
             max-width: 700px;
@@ -202,7 +201,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* КНОПКА ИЗБРАННОГО НА КАРТОЧКЕ */
         .favorite-icon {
             position: absolute;
             top: 15px;
@@ -371,11 +369,11 @@
     <div class="card-container" onclick="flipCard()">
         <div class="card" id="card">
             <div class="card-face card-front">
-                <div class="favorite-icon" id="fav-icon-front" onclick="toggleFavorite(event)">➔ ★</div>
+                <div class="favorite-icon" id="fav-icon-front" onclick="toggleFavorite(event)">☆</div>
                 <div id="question-text">Загрузка...</div>
             </div>
             <div class="card-face card-back">
-                <div class="favorite-icon" id="fav-icon-back" onclick="toggleFavorite(event)">➔ ★</div>
+                <div class="favorite-icon" id="fav-icon-back" onclick="toggleFavorite(event)">☆</div>
                 <div class="answer-scroll-area" id="answer-text">Загрузка...</div>
                 <div class="notes-container" onclick="preventFlip(event)">
                     <textarea class="notes-textarea" id="card-notes" placeholder="Добавьте свои заметки или вопросы по теме здесь..."></textarea>
@@ -391,11 +389,11 @@
     </div>
 
     <script>
-       const originalCards = [
-    // ==========================================
-    // БЛОК 1. ТРЕБОВАНИЯ
-    // ==========================================
-    {
+        const originalCards = [
+            // ==========================================
+            // БЛОК 1. ТРЕБОВАНИЯ
+            // ==========================================
+            {
         id: "q1",
         category: "requirements",
         question: "1. Кто такие стейкхолдеры? Кто является стейкхолдерами для тебя? С какими группами заинтересованных лиц общался?",
@@ -2428,7 +2426,9 @@
     </ul>
     <p><b>Где применялся:</b> В старых версиях Facebook Chat и WhatsApp, когда WebSocket еще не был широко поддержан браузерами. Сейчас используется редко, в основном для совместимости со старыми системами.</p>`
 }
-];
+
+        ];
+
         let flashcards = [...originalCards];
         let currentIndex = 0;
         let isStressMode = false;
@@ -2470,20 +2470,17 @@
         function applyFilterAndOrder() {
             let filtered = [...originalCards];
 
-            // 1. Фильтр по категории / избранному
             if (currentFilter === 'favorites') {
                 filtered = filtered.filter(c => localStorage.getItem(`fav_${c.id}`) === 'true');
             } else if (currentFilter !== 'all') {
                 filtered = filtered.filter(c => c.category === currentFilter);
             }
 
-            // 2. Фильтр по строке поиска
             if (searchQuery.trim() !== '') {
                 const q = searchQuery.toLowerCase();
                 filtered = filtered.filter(c => c.question.toLowerCase().includes(q) || c.answer.toLowerCase().includes(q));
             }
 
-            // 3. Стресс-тест (Рандом)
             if (isStressMode) {
                 for (let i = filtered.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -2510,11 +2507,7 @@
 
         function toggleStressMode() {
             isStressMode = !isStressMode;
-            if (isStressMode) {
-                stressBtn.classList.add('active');
-            } else {
-                stressBtn.classList.remove('active');
-            }
+            stressBtn.classList.toggle('active', isStressMode);
             applyFilterAndOrder();
         }
 
@@ -2522,30 +2515,22 @@
             cardElement.classList.remove('flipped');
             setTimeout(() => {
                 if (flashcards.length === 0) {
-                    questionElement.innerHTML = "Ничего не найдено по вашему запросу";
+                    questionElement.innerHTML = "Ничего не найдено";
                     answerElement.innerHTML = "<h3>Пусто</h3>";
                     progressElement.textContent = `Карточек: 0`;
                     prevBtn.disabled = true;
                     nextBtn.disabled = true;
-                    notesTextarea.value = "";
-                    document.getElementById('fav-icon-front').style.display = 'none';
-                    document.getElementById('fav-icon-back').style.display = 'none';
                     return;
                 }
-
-                document.getElementById('fav-icon-front').style.display = 'block';
-                document.getElementById('fav-icon-back').style.display = 'block';
 
                 questionElement.innerHTML = flashcards[currentIndex].question;
                 answerElement.innerHTML = flashcards[currentIndex].answer;
                 progressElement.textContent = `Карточка ${currentIndex + 1} из ${flashcards.length}`;
-                
-                // Заметки
+
                 const currentCardId = flashcards[currentIndex].id;
                 const savedNote = localStorage.getItem(`note_${currentCardId}`);
-                notesTextarea.value = savedNote ? savedNote : "";
+                notesTextarea.value = savedNote || "";
 
-                // Звёздочки избранного
                 const isFav = localStorage.getItem(`fav_${currentCardId}`) === 'true';
                 const favFront = document.getElementById('fav-icon-front');
                 const favBack = document.getElementById('fav-icon-back');
@@ -2564,15 +2549,11 @@
 
                 prevBtn.disabled = (currentIndex === 0);
                 nextBtn.disabled = (currentIndex === flashcards.length - 1);
-                
-                document.getElementById('answer-text').scrollTop = 0;
             }, 150);
         }
 
         function flipCard() {
-            if (flashcards.length > 0) {
-                cardElement.classList.toggle('flipped');
-            }
+            if (flashcards.length > 0) cardElement.classList.toggle('flipped');
         }
 
         function preventFlip(event) {
@@ -2580,31 +2561,28 @@
         }
 
         function toggleFavorite(event) {
-            event.stopPropagation(); // Чтобы карточка не переворачивалась при клике на звезду
+            event.stopPropagation();
             if (flashcards.length === 0) return;
 
             const currentCardId = flashcards[currentIndex].id;
             const isFav = localStorage.getItem(`fav_${currentCardId}`) === 'true';
-            
             localStorage.setItem(`fav_${currentCardId}`, !isFav);
             updateCard();
 
-            // Если мы находимся в табе избранного и убрали звезду, нужно обновить список
             if (currentFilter === 'favorites') {
-                setTimeout(() => { applyFilterAndOrder(); }, 300);
+                setTimeout(applyFilterAndOrder, 300);
             }
         }
 
         function saveNote() {
             if (flashcards.length === 0) return;
             const currentCardId = flashcards[currentIndex].id;
-            const noteText = notesTextarea.value;
-            localStorage.setItem(`note_${currentCardId}`, noteText);
+            localStorage.setItem(`note_${currentCardId}`, notesTextarea.value);
             alert("Заметка сохранена!");
         }
 
         function nextCard(event) {
-            if (event) event.stopPropagation(); 
+            if (event) event.stopPropagation();
             if (currentIndex < flashcards.length - 1) {
                 currentIndex++;
                 updateCard();
@@ -2612,30 +2590,26 @@
         }
 
         function prevCard(event) {
-            if (event) event.stopPropagation(); 
+            if (event) event.stopPropagation();
             if (currentIndex > 0) {
                 currentIndex--;
                 updateCard();
             }
         }
 
-        // ОБРАБОТКА ГОРЯЧИХ КЛАВИШ
         window.addEventListener('keydown', function(event) {
-            // Если фокус в инпуте поиска или заметок — горячие клавиши не должны срабатывать
-            if (document.activeElement === searchBar || document.activeElement === notesTextarea) {
-                return;
-            }
+            if (document.activeElement === searchBar || document.activeElement === notesTextarea) return;
 
             if (event.code === 'Space') {
-                event.preventDefault(); // Предотвращаем скролл страницы пробелом
+                event.preventDefault();
                 flipCard();
             } else if (event.key === 'ArrowRight') {
                 nextCard();
             } else if (event.key === 'ArrowLeft') {
                 prevCard();
-            } else if (event.key === 's' || event.key === 'ы' || event.key === 'S' || event.key === 'Ы') {
+            } else if (event.key.toLowerCase() === 's') {
                 toggleStressMode();
-            } else if (event.key === 'f' || event.key === 'а' || event.key === 'F' || event.key === 'А') {
+            } else if (event.key.toLowerCase() === 'f') {
                 toggleFavorite(event);
             }
         });
